@@ -1,0 +1,113 @@
+# ==========================================
+# 在服务器上执行以下命令（修复路径问题）
+# ==========================================
+
+# 你当前在项目根目录，需要进入 backend 目录
+
+# 方法一：进入 backend 目录再执行
+cd /opt/Learning\ Archive\ Platform/backend
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# ==========================================
+# 如果虚拟环境还没创建，先创建
+# ==========================================
+
+cd /opt/Learning\ Archive\ Platform/backend
+
+# 如果 venv 目录不存在，先创建虚拟环境
+if [ ! -d "venv" ]; then
+  python3 -m venv venv || (apt install -y python3.12-venv && python3 -m venv venv)
+fi
+
+# 激活虚拟环境
+source venv/bin/activate
+
+# 升级 pip
+pip install --upgrade pip
+
+# 安装依赖
+pip install -r requirements.txt
+
+# ==========================================
+# 完整部署流程（从当前位置开始）
+# ==========================================
+
+# 1. 进入后端目录
+cd /opt/Learning\ Archive\ Platform/backend
+
+# 2. 创建虚拟环境（如果还没有）
+if [ ! -d "venv" ]; then
+  python3 -m venv venv || (apt install -y python3.12-venv && python3 -m venv venv)
+fi
+
+# 3. 激活虚拟环境
+source venv/bin/activate
+
+# 4. 安装依赖
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# 5. 创建必要的目录
+mkdir -p data logs
+
+# 6. 配置环境变量
+if [ ! -f .env ]; then
+  SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+  JWT_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+  cat > .env <<EOF
+PORT=3000
+DEBUG=False
+APP_ENV=production
+SECRET_KEY=$SECRET_KEY
+JWT_SECRET_KEY=$JWT_SECRET_KEY
+DATABASE_URL=sqlite:///./data/archive.db
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=1440
+DATA_DIR=./data
+COLLECTIONS_DIR=./data/collections
+UPLOADS_DIR=./data/uploads
+SCHEDULER_TIMEZONE=Asia/Shanghai
+COLLECTION_SCHEDULE_HOUR=0
+COLLECTION_SCHEDULE_MINUTE=0
+CRAWLER_USER_AGENT=Mozilla/5.0
+CRAWLER_REQUEST_DELAY=1.0
+CRAWLER_MAX_RETRIES=3
+LOG_LEVEL=INFO
+LOG_DIR=./logs
+EOF
+fi
+
+# 7. 初始化数据库
+python scripts/init_db.py
+
+# 8. 创建管理员用户（可选）
+# python scripts/create_user.py admin your_password
+
+# 9. 创建 systemd 服务
+cat > /etc/systemd/system/archive-platform.service <<EOF
+[Unit]
+Description=Learning Archive Platform API
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/Learning Archive Platform/backend
+Environment="PATH=/opt/Learning Archive Platform/backend/venv/bin"
+ExecStart=/opt/Learning Archive Platform/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3000
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 10. 启动服务
+systemctl daemon-reload
+systemctl enable archive-platform
+systemctl start archive-platform
+systemctl status archive-platform

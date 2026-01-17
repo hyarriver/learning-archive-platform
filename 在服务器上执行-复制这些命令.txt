@@ -1,0 +1,99 @@
+# ==========================================
+# 在服务器上直接复制粘贴执行以下命令
+# ==========================================
+
+# 方式一：直接在服务器上创建并运行脚本（推荐）
+# 复制整个脚本内容到服务器并执行
+
+cat > /tmp/quick_deploy.sh << 'SCRIPT_END'
+cd /opt/Learning\ Archive\ Platform/backend
+
+# 修复 Python 环境
+python3 -m venv venv || (apt install -y python3.12-venv && python3 -m venv venv)
+
+# 激活并安装依赖
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# 配置环境变量
+if [ ! -f .env ]; then
+  SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+  JWT_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+  cat > .env <<EOF
+PORT=3000
+DEBUG=False
+APP_ENV=production
+SECRET_KEY=$SECRET_KEY
+JWT_SECRET_KEY=$JWT_SECRET_KEY
+DATABASE_URL=sqlite:///./data/archive.db
+EOF
+fi
+
+# 初始化数据库
+mkdir -p data logs
+python scripts/init_db.py
+
+# 创建服务
+cat > /etc/systemd/system/archive-platform.service <<EOF
+[Unit]
+Description=Learning Archive Platform API
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/Learning Archive Platform/backend
+Environment="PATH=/opt/Learning Archive Platform/backend/venv/bin"
+ExecStart=/opt/Learning Archive Platform/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3000
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable archive-platform
+systemctl start archive-platform
+systemctl status archive-platform
+SCRIPT_END
+
+chmod +x /tmp/quick_deploy.sh
+/tmp/quick_deploy.sh
+
+# ==========================================
+# 方式二：分步执行（如果方式一失败）
+# ==========================================
+
+cd /opt/Learning\ Archive\ Platform/backend
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+cp .env.example .env
+sed -i 's/PORT=.*/PORT=3000/' .env
+sed -i 's/DEBUG=.*/DEBUG=False/' .env
+python scripts/init_db.py
+# 创建用户: python scripts/create_user.py admin your_password
+
+# 创建服务文件
+cat > /etc/systemd/system/archive-platform.service <<EOF
+[Unit]
+Description=Learning Archive Platform API
+After=network.target
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/Learning Archive Platform/backend
+Environment="PATH=/opt/Learning Archive Platform/backend/venv/bin"
+ExecStart=/opt/Learning Archive Platform/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3000
+Restart=always
+RestartSec=10
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable archive-platform
+systemctl start archive-platform

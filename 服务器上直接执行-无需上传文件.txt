@@ -1,0 +1,62 @@
+# ==========================================
+# 在服务器上直接复制粘贴执行（无需上传文件）
+# ==========================================
+
+# 直接执行以下命令完成部署（一行命令，自动处理所有步骤）
+
+cd /opt/Learning\ Archive\ Platform/backend && \
+python3 -m venv venv || (apt install -y python3.12-venv && python3 -m venv venv) && \
+source venv/bin/activate && \
+pip install --upgrade pip -q && \
+pip install -r requirements.txt && \
+mkdir -p data logs && \
+if [ ! -f .env ]; then SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))"); JWT_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))"); cat > .env <<EOF
+PORT=3000
+DEBUG=False
+APP_ENV=production
+SECRET_KEY=$SECRET_KEY
+JWT_SECRET_KEY=$JWT_SECRET_KEY
+DATABASE_URL=sqlite:///./data/archive.db
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=1440
+DATA_DIR=./data
+COLLECTIONS_DIR=./data/collections
+UPLOADS_DIR=./data/uploads
+SCHEDULER_TIMEZONE=Asia/Shanghai
+COLLECTION_SCHEDULE_HOUR=0
+COLLECTION_SCHEDULE_MINUTE=0
+CRAWLER_USER_AGENT=Mozilla/5.0
+CRAWLER_REQUEST_DELAY=1.0
+CRAWLER_MAX_RETRIES=3
+LOG_LEVEL=INFO
+LOG_DIR=./logs
+EOF
+fi && \
+python scripts/init_db.py && \
+cat > /etc/systemd/system/archive-platform.service <<EOF
+[Unit]
+Description=Learning Archive Platform API
+After=network.target
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/Learning Archive Platform/backend
+Environment="PATH=/opt/Learning Archive Platform/backend/venv/bin"
+ExecStart=/opt/Learning Archive Platform/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3000
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload && \
+systemctl enable archive-platform && \
+systemctl start archive-platform && \
+sleep 3 && \
+systemctl status archive-platform --no-pager && \
+echo "==========================================" && \
+echo "部署完成！" && \
+echo "服务地址: http://112.124.2.164:3000" && \
+echo "API 文档: http://112.124.2.164:3000/docs" && \
+echo "创建用户: cd /opt/Learning\ Archive\ Platform/backend && source venv/bin/activate && python scripts/create_user.py admin your_password"

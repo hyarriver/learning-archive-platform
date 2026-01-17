@@ -1,0 +1,200 @@
+# ==========================================
+# 完整部署步骤 - 从当前位置开始
+# 当前状态：已激活虚拟环境，需要继续部署
+# ==========================================
+
+# ==========================================
+# 步骤 1: 安装依赖（如果还没安装）
+# ==========================================
+
+# 确保在 backend 目录
+cd /opt/Learning\ Archive\ Platform/backend
+
+# 确保虚拟环境已激活（如果提示符没有 (venv)，执行下面命令）
+source venv/bin/activate
+
+# 升级 pip
+pip install --upgrade pip
+
+# 安装所有依赖（这可能需要几分钟）
+pip install -r requirements.txt
+
+# ==========================================
+# 步骤 2: 创建必要的目录
+# ==========================================
+
+mkdir -p data logs
+
+# ==========================================
+# 步骤 3: 配置环境变量
+# ==========================================
+
+# 检查是否已有 .env 文件
+if [ -f .env ]; then
+  echo ".env 文件已存在"
+  # 如果需要更新 PORT，执行：
+  sed -i 's/^PORT=.*/PORT=3000/' .env
+  sed -i 's/^DEBUG=.*/DEBUG=False/' .env
+else
+  # 创建新的 .env 文件
+  SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+  JWT_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+  
+  cat > .env <<EOF
+APP_NAME=Learning Archive Platform
+APP_ENV=production
+DEBUG=False
+SECRET_KEY=$SECRET_KEY
+JWT_SECRET_KEY=$JWT_SECRET_KEY
+HOST=0.0.0.0
+PORT=3000
+DATABASE_URL=sqlite:///./data/archive.db
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=1440
+DATA_DIR=./data
+COLLECTIONS_DIR=./data/collections
+UPLOADS_DIR=./data/uploads
+SCHEDULER_TIMEZONE=Asia/Shanghai
+COLLECTION_SCHEDULE_HOUR=0
+COLLECTION_SCHEDULE_MINUTE=0
+CRAWLER_USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+CRAWLER_REQUEST_DELAY=1.0
+CRAWLER_MAX_RETRIES=3
+LOG_LEVEL=INFO
+LOG_DIR=./logs
+EOF
+  
+  echo ".env 文件已创建，密钥已自动生成"
+fi
+
+# ==========================================
+# 步骤 4: 初始化数据库
+# ==========================================
+
+# 确保虚拟环境已激活
+source venv/bin/activate
+
+# 初始化数据库
+python scripts/init_db.py
+
+# 如果成功，会看到 "数据库初始化完成！"
+
+# ==========================================
+# 步骤 5: 创建管理员用户
+# ==========================================
+
+# 创建管理员用户（将 your_password 替换为你的密码）
+python scripts/create_user.py admin your_password
+
+# 例如：
+# python scripts/create_user.py admin MySecurePassword123!
+
+# ==========================================
+# 步骤 6: 测试运行（验证配置）
+# ==========================================
+
+# 先测试服务是否能正常启动
+uvicorn app.main:app --host 0.0.0.0 --port 3000
+
+# 如果看到类似以下输出，说明配置正确：
+# INFO:     Started server process [xxxxx]
+# INFO:     Waiting for application startup.
+# INFO:     Application startup complete.
+# INFO:     Uvicorn running on http://0.0.0.0:3000
+
+# 按 Ctrl+C 停止测试，然后继续下一步
+
+# ==========================================
+# 步骤 7: 创建 systemd 服务
+# ==========================================
+
+# 创建服务文件
+cat > /etc/systemd/system/archive-platform.service <<EOF
+[Unit]
+Description=Learning Archive Platform API
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/Learning Archive Platform/backend
+Environment="PATH=/opt/Learning Archive Platform/backend/venv/bin"
+ExecStart=/opt/Learning Archive Platform/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3000
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 重新加载 systemd
+systemctl daemon-reload
+
+# ==========================================
+# 步骤 8: 启动服务
+# ==========================================
+
+# 启用服务（开机自启）
+systemctl enable archive-platform
+
+# 启动服务
+systemctl start archive-platform
+
+# 查看服务状态
+systemctl status archive-platform
+
+# 如果看到 "Active: active (running)"，说明服务启动成功
+
+# ==========================================
+# 步骤 9: 配置防火墙（如果需要）
+# ==========================================
+
+# Ubuntu/Debian (UFW)
+if command -v ufw &> /dev/null; then
+  ufw allow 3000/tcp
+  ufw reload
+  echo "防火墙规则已添加"
+fi
+
+# CentOS/RHEL (Firewalld)
+if command -v firewall-cmd &> /dev/null; then
+  firewall-cmd --permanent --add-port=3000/tcp
+  firewall-cmd --reload
+  echo "防火墙规则已添加"
+fi
+
+# ==========================================
+# 步骤 10: 验证部署
+# ==========================================
+
+# 测试健康检查端点
+curl http://localhost:3000/health
+
+# 应该返回: {"status":"ok"}
+
+# 查看服务日志
+journalctl -u archive-platform -f
+
+# 按 Ctrl+C 退出日志查看
+
+# ==========================================
+# 部署完成！
+# ==========================================
+
+echo "=========================================="
+echo "部署完成！"
+echo "=========================================="
+echo ""
+echo "访问地址:"
+echo "  前端页面: http://112.124.2.164:3000/"
+echo "  API 文档: http://112.124.2.164:3000/docs"
+echo "  健康检查: http://112.124.2.164:3000/health"
+echo ""
+echo "服务管理:"
+echo "  查看状态: systemctl status archive-platform"
+echo "  查看日志: journalctl -u archive-platform -f"
+echo "  重启服务: systemctl restart archive-platform"
+echo "  停止服务: systemctl stop archive-platform"
+echo ""

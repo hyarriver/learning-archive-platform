@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习资料聚合平台</title>
+    <link rel="stylesheet" href="/static/main.css">
+    <link rel="stylesheet" href="/static/mobile.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 登录页面 -->
+        <div id="login-page" class="page active">
+            <div class="login-container">
+                <h1>学习资料聚合平台</h1>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">用户名</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">登录</button>
+                    <div id="login-error" class="error-message"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 主页面 -->
+        <div id="main-page" class="page">
+            <header class="header">
+                <h1>学习资料聚合平台</h1>
+                <div class="header-actions">
+                    <span id="current-user"></span>
+                    <button id="logout-btn" class="btn btn-secondary">退出</button>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <!-- 侧边栏 -->
+                <aside class="sidebar">
+                    <nav class="nav">
+                        <a href="#" class="nav-item active" data-page="files">文件列表</a>
+                        <a href="#" class="nav-item" data-page="collection">采集管理</a>
+                    </nav>
+                </aside>
+
+                <!-- 内容区 -->
+                <div class="content">
+                    <!-- 文件列表页 -->
+                    <div id="files-page" class="content-page active">
+                        <div class="page-header">
+                            <h2>文件列表</h2>
+                            <div class="search-bar">
+                                <input type="text" id="search-input" placeholder="搜索文件...">
+                                <button id="search-btn" class="btn btn-primary">搜索</button>
+                            </div>
+                        </div>
+                        <div id="files-list" class="files-list">
+                            <div class="loading">加载中...</div>
+                        </div>
+                        <div class="pagination" id="pagination"></div>
+                    </div>
+
+                    <!-- 文件详情页 -->
+                    <div id="file-detail-page" class="content-page">
+                        <div class="page-header">
+                            <button id="back-btn" class="btn btn-secondary">返回</button>
+                            <h2 id="file-title"></h2>
+                            <button id="download-btn" class="btn btn-primary">下载</button>
+                        </div>
+                        <div id="file-content" class="file-content">
+                            <div class="loading">加载中...</div>
+                        </div>
+                    </div>
+
+                    <!-- 采集管理页 -->
+                    <div id="collection-page" class="content-page">
+                        <div class="page-header">
+                            <h2>采集管理</h2>
+                            <button id="add-source-btn" class="btn btn-primary">添加采集源</button>
+                            <button id="trigger-all-btn" class="btn btn-primary">触发全部采集</button>
+                        </div>
+                        <div id="sources-list" class="sources-list">
+                            <div class="loading">加载中...</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/files.js"></script>
+    <script src="/js/collection.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>

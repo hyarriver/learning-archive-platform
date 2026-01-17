@@ -1,0 +1,365 @@
+"""
+采集管理API
+"""
+import json
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+
+from app.database import get_db, CollectionSource, CollectionLog
+from app.api.dependencies import get_current_user
+from app.scheduler import get_scheduler
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
+router = APIRouter(prefix="/api/collection", tags=["collection"])
+
+
+class CollectionSourceCreate(BaseModel):
+    """采集源创建模型"""
+    name: str
+    url_pattern: str
+    source_type: str  # 'webpage' or 'video'
+    crawler_config: Optional[dict] = None
+    enabled: bool = True
+
+
+class CollectionSourceUpdate(BaseModel):
+    """采集源更新模型"""
+    name: Optional[str] = None
+    url_pattern: Optional[str] = None
+    source_type: Optional[str] = None
+    crawler_config: Optional[dict] = None
+    enabled: Optional[bool] = None
+
+
+class CollectionSourceInfo(BaseModel):
+    """采集源信息模型"""
+    id: int
+    name: str
+    url_pattern: str
+    source_type: str
+    crawler_config: Optional[dict]
+    enabled: bool
+    created_at: str
+    updated_at: Optional[str]
+    
+    class Config:
+        from_attributes = True
+
+
+@router.get("/sources", response_model=List[CollectionSourceInfo])
+async def list_sources(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    获取所有采集源列表
+    
+    Args:
+        db: 数据库会话
+        current_user: 当前登录用户
+        
+    Returns:
+        采集源列表
+    """
+    sources = db.query(CollectionSource).all()
+    
+    result = []
+    for source in sources:
+        crawler_config = None
+        if source.crawler_config:
+            try:
+                crawler_config = json.loads(source.crawler_config)
+            except json.JSONDecodeError:
+                pass
+        
+        result.append(CollectionSourceInfo(
+            id=source.id,
+            name=source.name,
+            url_pattern=source.url_pattern,
+            source_type=source.source_type,
+            crawler_config=crawler_config,
+            enabled=source.enabled,
+            created_at=source.created_at.isoformat() if source.created_at else None,
+            updated_at=source.updated_at.isoformat() if source.updated_at else None
+        ))
+    
+    return result
+
+
+@router.post("/sources", response_model=CollectionSourceInfo)
+async def create_source(
+    source_data: CollectionSourceCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    创建采集源
+    
+    Args:
+        source_data: 采集源数据
+        db: 数据库会话
+        current_user: 当前登录用户
+        
+    Returns:
+        创建的采集源信息
+    """
+    # 验证源类型
+    if source_data.source_type not in ['webpage', 'video']:
+        raise HTTPException(status_code=400, detail="源类型必须是 'webpage' 或 'video'")
+    
+    # 准备爬虫配置JSON
+    crawler_config_str = None
+    if source_data.crawler_config:
+        crawler_config_str = json.dumps(source_data.crawler_config, ensure_ascii=False)
+    
+    # 创建采集源
+    source = CollectionSource(
+        name=source_data.name,
+        url_pattern=source_data.url_pattern,
+        source_type=source_data.source_type,
+        crawler_config=crawler_config_str,
+        enabled=source_data.enabled
+    )
+    
+    db.add(source)
+    db.commit()
+    db.refresh(source)
+    
+    logger.info(f"创建采集源: {source.name}")
+    
+    crawler_config = None
+    if source.crawler_config:
+        try:
+            crawler_config = json.loads(source.crawler_config)
+        except json.JSONDecodeError:
+            pass
+    
+    return CollectionSourceInfo(
+        id=source.id,
+        name=source.name,
+        url_pattern=source.url_pattern,
+        source_type=source.source_type,
+        crawler_config=crawler_config,
+        enabled=source.enabled,
+        created_at=source.created_at.isoformat() if source.created_at else None,
+        updated_at=source.updated_at.isoformat() if source.updated_at else None
+    )
+
+
+@router.put("/sources/{source_id}", response_model=CollectionSourceInfo)
+async def update_source(
+    source_id: int,
+    source_data: CollectionSourceUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    更新采集源
+    
+    Args:
+        source_id: 采集源ID
+        source_data: 更新数据
+        db: 数据库会话
+        current_user: 当前登录用户
+        
+    Returns:
+        更新后的采集源信息
+        
+    Raises:
+        HTTPException: 如果采集源不存在
+    """
+    source = db.query(CollectionSource).filter(CollectionSource.id == source_id).first()
+    
+    if not source:
+        raise HTTPException(status_code=404, detail="采集源不存在")
+    
+    # 更新字段
+    if source_data.name is not None:
+        source.name = source_data.name
+    if source_data.url_pattern is not None:
+        source.url_pattern = source_data.url_pattern
+    if source_data.source_type is not None:
+        if source_data.source_type not in ['webpage', 'video']:
+            raise HTTPException(status_code=400, detail="源类型必须是 'webpage' 或 'video'")
+        source.source_type = source_data.source_type
+    if source_data.crawler_config is not None:
+        source.crawler_config = json.dumps(source_data.crawler_config, ensure_ascii=False)
+    if source_data.enabled is not None:
+        source.enabled = source_data.enabled
+    
+    from datetime import datetime
+    source.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(source)
+    
+    logger.info(f"更新采集源: {source.name}")
+    
+    crawler_config = None
+    if source.crawler_config:
+        try:
+            crawler_config = json.loads(source.crawler_config)
+        except json.JSONDecodeError:
+            pass
+    
+    return CollectionSourceInfo(
+        id=source.id,
+        name=source.name,
+        url_pattern=source.url_pattern,
+        source_type=source.source_type,
+        crawler_config=crawler_config,
+        enabled=source.enabled,
+        created_at=source.created_at.isoformat() if source.created_at else None,
+        updated_at=source.updated_at.isoformat() if source.updated_at else None
+    )
+
+
+@router.delete("/sources/{source_id}")
+async def delete_source(
+    source_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    删除采集源
+    
+    Args:
+        source_id: 采集源ID
+        db: 数据库会话
+        current_user: 当前登录用户
+        
+    Returns:
+        删除结果
+        
+    Raises:
+        HTTPException: 如果采集源不存在
+    """
+    source = db.query(CollectionSource).filter(CollectionSource.id == source_id).first()
+    
+    if not source:
+        raise HTTPException(status_code=404, detail="采集源不存在")
+    
+    db.delete(source)
+    db.commit()
+    
+    logger.info(f"删除采集源: {source.name}")
+    
+    return {"message": "采集源已删除"}
+
+
+@router.post("/sources/{source_id}/trigger")
+async def trigger_collection(
+    source_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    手动触发采集
+    
+    Args:
+        source_id: 采集源ID
+        db: 数据库会话
+        current_user: 当前登录用户
+        
+    Returns:
+        触发结果
+        
+    Raises:
+        HTTPException: 如果采集源不存在或调度器未启动
+    """
+    source = db.query(CollectionSource).filter(CollectionSource.id == source_id).first()
+    
+    if not source:
+        raise HTTPException(status_code=404, detail="采集源不存在")
+    
+    scheduler = get_scheduler()
+    if not scheduler:
+        raise HTTPException(status_code=500, detail="任务调度器未启动")
+    
+    try:
+        scheduler.trigger_collection(source_id=source_id)
+        logger.info(f"手动触发采集: {source.name}")
+        return {"message": "采集任务已触发"}
+    except Exception as e:
+        logger.error(f"触发采集失败: {source.name}, 错误: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"触发采集失败: {str(e)}")
+
+
+@router.post("/trigger")
+async def trigger_all_collection(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    手动触发所有启用的采集源
+    
+    Args:
+        db: 数据库会话
+        current_user: 当前登录用户
+        
+    Returns:
+        触发结果
+        
+    Raises:
+        HTTPException: 如果调度器未启动
+    """
+    scheduler = get_scheduler()
+    if not scheduler:
+        raise HTTPException(status_code=500, detail="任务调度器未启动")
+    
+    try:
+        scheduler.trigger_collection(source_id=None)
+        logger.info("手动触发所有采集源")
+        return {"message": "所有采集任务已触发"}
+    except Exception as e:
+        logger.error(f"触发所有采集失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"触发采集失败: {str(e)}")
+
+
+@router.get("/logs")
+async def get_collection_logs(
+    source_id: Optional[int] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    获取采集日志
+    
+    Args:
+        source_id: 采集源ID（可选）
+        status: 状态筛选（可选：'success', 'failed', 'skipped'）
+        limit: 返回数量限制
+        db: 数据库会话
+        current_user: 当前登录用户
+        
+    Returns:
+        采集日志列表
+    """
+    query = db.query(CollectionLog)
+    
+    if source_id:
+        query = query.filter(CollectionLog.source_id == source_id)
+    
+    if status:
+        query = query.filter(CollectionLog.status == status)
+    
+    logs = query.order_by(CollectionLog.executed_at.desc()).limit(limit).all()
+    
+    return [
+        {
+            "id": log.id,
+            "source_id": log.source_id,
+            "url": log.url,
+            "status": log.status,
+            "error_message": log.error_message,
+            "file_id": log.file_id,
+            "executed_at": log.executed_at.isoformat() if log.executed_at else None
+        }
+        for log in logs
+    ]
