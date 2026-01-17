@@ -4,91 +4,448 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>学习资料聚合平台</title>
-    <link rel="stylesheet" href="/static/main.css">
-    <link rel="stylesheet" href="/static/mobile.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS Custom Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(var(--border))",
+                        input: "hsl(var(--input))",
+                        ring: "hsl(var(--ring))",
+                        background: "hsl(var(--background))",
+                        foreground: "hsl(var(--foreground))",
+                        primary: {
+                            DEFAULT: "hsl(var(--primary))",
+                            foreground: "hsl(var(--primary-foreground))",
+                        },
+                        secondary: {
+                            DEFAULT: "hsl(var(--secondary))",
+                            foreground: "hsl(var(--secondary-foreground))",
+                        },
+                        destructive: {
+                            DEFAULT: "hsl(var(--destructive))",
+                            foreground: "hsl(var(--destructive-foreground))",
+                        },
+                        muted: {
+                            DEFAULT: "hsl(var(--muted))",
+                            foreground: "hsl(var(--muted-foreground))",
+                        },
+                        accent: {
+                            DEFAULT: "hsl(var(--accent))",
+                            foreground: "hsl(var(--accent-foreground))",
+                        },
+                    },
+                    borderRadius: {
+                        lg: "var(--radius)",
+                        md: "calc(var(--radius) - 2px)",
+                        sm: "calc(var(--radius) - 4px)",
+                    },
+                },
+            },
+        }
+    </script>
+    <!-- Custom CSS Variables -->
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 221.2 83.2% 53.3%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 47.4% 11.2%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 47.4% 11.2%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 221.2 83.2% 53.3%;
+            --radius: 0.5rem;
+        }
+        
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 217.2 91.2% 59.8%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 224.3 76.3% 48%;
+        }
+    </style>
 </head>
-<body>
-    <div id="app">
-        <!-- 登录页面 -->
-        <div id="login-page" class="page active">
-            <div class="login-container">
-                <h1>学习资料聚合平台</h1>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="username">用户名</label>
-                        <input type="text" id="username" name="username" required>
+<body class="bg-background text-foreground">
+    <div id="app" class="min-h-screen">
+        <!-- 登录/注册页面 -->
+        <div id="auth-page" class="flex items-center justify-center min-h-screen p-4">
+            <div class="w-full max-w-md space-y-6">
+                <div class="text-center space-y-2">
+                    <h1 class="text-3xl font-bold">学习资料聚合平台</h1>
+                    <p class="text-muted-foreground">登录或注册账户以继续</p>
+                </div>
+                
+                <!-- 登录表单 -->
+                <div id="login-form-container" class="bg-card border border-border rounded-lg p-6 shadow-sm">
+                    <h2 class="text-2xl font-semibold mb-4">登录</h2>
+                    <form id="login-form" class="space-y-4">
+                        <div class="space-y-2">
+                            <label for="login-username" class="text-sm font-medium">用户名</label>
+                            <input 
+                                type="text" 
+                                id="login-username" 
+                                name="username" 
+                                required
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="输入用户名"
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <label for="login-password" class="text-sm font-medium">密码</label>
+                            <input 
+                                type="password" 
+                                id="login-password" 
+                                name="password" 
+                                required
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="输入密码"
+                            />
+                        </div>
+                        <div id="login-error" class="text-sm text-destructive hidden"></div>
+                        <button 
+                            type="submit"
+                            class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                        >
+                            登录
+                        </button>
+                    </form>
+                    <div class="mt-4 text-center text-sm">
+                        <span class="text-muted-foreground">还没有账户？</span>
+                        <button id="show-register" class="text-primary hover:underline font-medium">立即注册</button>
                     </div>
-                    <div class="form-group">
-                        <label for="password">密码</label>
-                        <input type="password" id="password" name="password" required>
+                </div>
+
+                <!-- 注册表单 -->
+                <div id="register-form-container" class="bg-card border border-border rounded-lg p-6 shadow-sm hidden">
+                    <h2 class="text-2xl font-semibold mb-4">注册</h2>
+                    <form id="register-form" class="space-y-4">
+                        <div class="space-y-2">
+                            <label for="register-username" class="text-sm font-medium">用户名</label>
+                            <input 
+                                type="text" 
+                                id="register-username" 
+                                name="username" 
+                                required
+                                minlength="3"
+                                maxlength="50"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="输入用户名（3-50个字符）"
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <label for="register-password" class="text-sm font-medium">密码</label>
+                            <input 
+                                type="password" 
+                                id="register-password" 
+                                name="password" 
+                                required
+                                minlength="6"
+                                maxlength="100"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="输入密码（至少6个字符）"
+                            />
+                        </div>
+                        <div id="register-error" class="text-sm text-destructive hidden"></div>
+                        <button 
+                            type="submit"
+                            class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                        >
+                            注册
+                        </button>
+                    </form>
+                    <div class="mt-4 text-center text-sm">
+                        <span class="text-muted-foreground">已有账户？</span>
+                        <button id="show-login" class="text-primary hover:underline font-medium">立即登录</button>
                     </div>
-                    <button type="submit" class="btn btn-primary">登录</button>
-                    <div id="login-error" class="error-message"></div>
-                </form>
+                </div>
             </div>
         </div>
 
         <!-- 主页面 -->
-        <div id="main-page" class="page">
-            <header class="header">
-                <h1>学习资料聚合平台</h1>
-                <div class="header-actions">
-                    <span id="current-user"></span>
-                    <button id="logout-btn" class="btn btn-secondary">退出</button>
+        <div id="main-page" class="hidden">
+            <header class="border-b border-border bg-card">
+                <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+                    <h1 class="text-2xl font-bold">学习资料聚合平台</h1>
+                    <div class="flex items-center gap-4">
+                        <span id="current-user" class="text-sm text-muted-foreground"></span>
+                        <span id="user-role" class="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground"></span>
+                        <button 
+                            id="logout-btn"
+                            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-4"
+                        >
+                            退出
+                        </button>
+                    </div>
                 </div>
             </header>
 
-            <main class="main-content">
-                <!-- 侧边栏 -->
-                <aside class="sidebar">
-                    <nav class="nav">
-                        <a href="#" class="nav-item active" data-page="files">文件列表</a>
-                        <a href="#" class="nav-item" data-page="collection">采集管理</a>
-                    </nav>
-                </aside>
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex gap-6">
+                    <!-- 侧边栏 -->
+                    <aside class="w-64 space-y-1">
+                        <nav class="space-y-1">
+                            <a href="#" class="nav-item flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground active" data-page="files">
+                                文件列表
+                            </a>
+                            <a href="#" class="nav-item flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground admin-only hidden" data-page="collection">
+                                采集管理
+                            </a>
+                            <a href="#" class="nav-item flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground admin-only hidden" data-page="users">
+                                用户管理
+                            </a>
+                        </nav>
+                    </aside>
 
-                <!-- 内容区 -->
-                <div class="content">
-                    <!-- 文件列表页 -->
-                    <div id="files-page" class="content-page active">
-                        <div class="page-header">
-                            <h2>文件列表</h2>
-                            <div class="search-bar">
-                                <input type="text" id="search-input" placeholder="搜索文件...">
-                                <button id="search-btn" class="btn btn-primary">搜索</button>
+                    <!-- 内容区 -->
+                    <main class="flex-1">
+                        <!-- 文件列表页 -->
+                        <div id="files-page" class="content-page">
+                            <div class="mb-4 flex items-center justify-between">
+                                <h2 class="text-2xl font-semibold">文件列表</h2>
+                                <div class="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        id="search-input" 
+                                        placeholder="搜索文件..." 
+                                        class="flex h-10 w-64 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    />
+                                    <button 
+                                        id="search-btn"
+                                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4"
+                                    >
+                                        搜索
+                                    </button>
+                                    <button 
+                                        id="upload-file-page-btn"
+                                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4"
+                                    >
+                                        📤 上传文件
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="files-list" class="space-y-2">
+                                <div class="text-center py-8 text-muted-foreground">加载中...</div>
+                            </div>
+                            <div id="pagination" class="mt-4"></div>
+                        </div>
+
+                        <!-- 文件详情页 -->
+                        <div id="file-detail-page" class="content-page hidden">
+                            <div class="mb-4 flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <button 
+                                        id="back-btn"
+                                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-4"
+                                    >
+                                        ← 返回
+                                    </button>
+                                    <h2 id="file-title" class="text-2xl font-semibold"></h2>
+                                </div>
+                                <button 
+                                    id="download-btn"
+                                    class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4"
+                                >
+                                    下载
+                                </button>
+                            </div>
+                            <div id="file-content" class="space-y-2">
+                                <div class="text-center py-8 text-muted-foreground">加载中...</div>
                             </div>
                         </div>
-                        <div id="files-list" class="files-list">
-                            <div class="loading">加载中...</div>
-                        </div>
-                        <div class="pagination" id="pagination"></div>
-                    </div>
 
-                    <!-- 文件详情页 -->
-                    <div id="file-detail-page" class="content-page">
-                        <div class="page-header">
-                            <button id="back-btn" class="btn btn-secondary">返回</button>
-                            <h2 id="file-title"></h2>
-                            <button id="download-btn" class="btn btn-primary">下载</button>
+                        <!-- 其他页面内容 -->
+                        <div id="collection-page" class="content-page hidden">
+                            <!-- 采集管理页内容 -->
+                            <div class="mb-4 flex items-center justify-between">
+                                <h2 class="text-2xl font-semibold">采集管理</h2>
+                                <div class="flex gap-2">
+                                    <button 
+                                        id="add-source-btn"
+                                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4"
+                                    >
+                                        添加采集源
+                                    </button>
+                                    <button 
+                                        id="trigger-all-btn"
+                                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4"
+                                    >
+                                        触发全部采集
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="sources-list" class="space-y-2">
+                                <div class="text-center py-8 text-muted-foreground">加载中...</div>
+                            </div>
                         </div>
-                        <div id="file-content" class="file-content">
-                            <div class="loading">加载中...</div>
-                        </div>
-                    </div>
 
-                    <!-- 采集管理页 -->
-                    <div id="collection-page" class="content-page">
-                        <div class="page-header">
-                            <h2>采集管理</h2>
-                            <button id="add-source-btn" class="btn btn-primary">添加采集源</button>
-                            <button id="trigger-all-btn" class="btn btn-primary">触发全部采集</button>
+                        <div id="users-page" class="content-page hidden">
+                            <h2 class="text-2xl font-semibold mb-4">用户管理</h2>
+                            <div class="text-center py-8 text-muted-foreground">用户管理功能开发中...</div>
                         </div>
-                        <div id="sources-list" class="sources-list">
-                            <div class="loading">加载中...</div>
-                        </div>
-                    </div>
+                    </main>
                 </div>
-            </main>
+            </div>
+        </div>
+
+        <!-- 上传文件对话框 -->
+        <div id="upload-modal" class="fixed inset-0 bg-white/95 dark:bg-gray-900/95 flex items-center justify-center z-50 hidden p-4">
+            <div class="bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl w-full max-w-md transform transition-all">
+                <div class="p-6 space-y-4 bg-white dark:bg-gray-800 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-semibold tracking-tight">上传文件</h2>
+                        <button 
+                            id="close-upload-modal"
+                            class="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            aria-label="关闭"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <form id="upload-form" class="space-y-4" onsubmit="event.preventDefault(); uploadFile();">
+                        <div class="space-y-2">
+                            <label for="upload-file-input" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                选择文件
+                            </label>
+                            <div class="relative">
+                                <input 
+                                    type="file" 
+                                    id="upload-file-input" 
+                                    accept=".md,.txt,text/*"
+                                    required
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-1">支持 Markdown (.md) 和文本文件 (.txt)</p>
+                        </div>
+                        <div class="space-y-2">
+                            <label for="upload-title-input" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                文件标题（可选）
+                            </label>
+                            <input 
+                                type="text" 
+                                id="upload-title-input" 
+                                placeholder="留空则使用文件名"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                        </div>
+                        <div class="flex gap-2 justify-end pt-2">
+                            <button 
+                                type="button"
+                                id="close-upload-modal-2"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4"
+                            >
+                                取消
+                            </button>
+                            <button 
+                                type="submit"
+                                id="upload-file-btn"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                上传
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加采集源对话框 -->
+        <div id="add-source-modal" class="fixed inset-0 bg-white/95 dark:bg-gray-900/95 flex items-center justify-center z-50 hidden p-4">
+            <div class="bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl w-full max-w-md transform transition-all">
+                <div class="p-6 space-y-4 bg-white dark:bg-gray-800 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-semibold tracking-tight">添加采集源</h2>
+                        <button 
+                            id="close-add-source-modal"
+                            class="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            aria-label="关闭"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <form id="add-source-form" class="space-y-4" onsubmit="event.preventDefault(); createSource();">
+                        <div class="space-y-2">
+                            <label for="source-name-input" class="text-sm font-medium leading-none">名称</label>
+                            <input 
+                                type="text" 
+                                id="source-name-input" 
+                                placeholder="采集源名称"
+                                required
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <label for="source-url-input" class="text-sm font-medium leading-none">URL模式</label>
+                            <input 
+                                type="text" 
+                                id="source-url-input" 
+                                placeholder="https://example.com/**"
+                                required
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <label for="source-type-select" class="text-sm font-medium leading-none">类型</label>
+                            <select 
+                                id="source-type-select"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="webpage">网页</option>
+                                <option value="video">视频</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2 justify-end pt-2">
+                            <button 
+                                type="button"
+                                id="close-add-source-modal-2"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4"
+                            >
+                                取消
+                            </button>
+                            <button 
+                                type="submit"
+                                id="create-source-btn"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4"
+                            >
+                                创建
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -56,3 +56,28 @@ async def get_current_user(
         )
     
     return user
+
+
+async def get_current_admin(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """
+    获取当前管理员用户（需要admin角色）
+    
+    Args:
+        current_user: 当前登录用户
+        
+    Returns:
+        管理员用户对象
+        
+    Raises:
+        HTTPException: 如果用户不是管理员
+    """
+    user_role = getattr(current_user, 'role', 'user')
+    if user_role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="需要管理员权限"
+        )
+    
+    return current_user

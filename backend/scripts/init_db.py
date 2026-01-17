@@ -91,14 +91,12 @@ def init_database():
         );
         """,
         
-        # 创建索引
-        """
-        CREATE INDEX IF NOT EXISTS idx_files_source_id ON files(source_id);
-        CREATE INDEX IF NOT EXISTS idx_files_file_hash ON files(file_hash);
-        CREATE INDEX IF NOT EXISTS idx_collection_logs_source_id ON collection_logs(source_id);
-        CREATE INDEX IF NOT EXISTS idx_collection_logs_status ON collection_logs(status);
-        CREATE INDEX IF NOT EXISTS idx_file_versions_file_id ON file_versions(file_id);
-        """
+        # 创建索引（分开执行，SQLite不支持一次执行多个语句）
+        "CREATE INDEX IF NOT EXISTS idx_files_source_id ON files(source_id);",
+        "CREATE INDEX IF NOT EXISTS idx_files_file_hash ON files(file_hash);",
+        "CREATE INDEX IF NOT EXISTS idx_collection_logs_source_id ON collection_logs(source_id);",
+        "CREATE INDEX IF NOT EXISTS idx_collection_logs_status ON collection_logs(status);",
+        "CREATE INDEX IF NOT EXISTS idx_file_versions_file_id ON file_versions(file_id);",
     ]
     
     with engine.connect() as conn:

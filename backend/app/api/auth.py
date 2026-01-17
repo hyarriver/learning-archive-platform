@@ -4,11 +4,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.database import get_db
 from app.api.dependencies import get_current_user
-from app.utils.auth import authenticate_user, create_access_token
+from app.utils.auth import authenticate_user, create_access_token, create_user
 from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -26,10 +26,17 @@ class UserInfo(BaseModel):
     """用户信息模型"""
     id: int
     username: str
+    role: str
     created_at: str
     
     class Config:
         from_attributes = True
+
+
+class RegisterRequest(BaseModel):
+    """注册请求模型"""
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=6, max_length=100)
 
 
 @router.post("/login", response_model=Token)
@@ -68,6 +75,41 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@router.post("/register", response_model=UserInfo, status_code=status.HTTP_201_CREATED)
+async def register(
+    register_data: RegisterRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    用户注册
+    
+    Args:
+        register_data: 注册数据
+        db: 数据库会话
+        
+    Returns:
+        创建的用户信息
+        
+    Raises:
+        HTTPException: 如果用户名已存在或数据验证失败
+    """
+    try:
+        user = create_user(db, register_data.username, register_data.password, role="user")
+        logger.info(f"新用户注册: {user.username}")
+        return {
+            "id": user.id,
+            "username": user.username,
+            "role": user.role,
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        }
+    except ValueError as e:
+        logger.warning(f"注册失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
 @router.get("/me", response_model=UserInfo)
 async def get_current_user_info(
     current_user = Depends(get_current_user)
@@ -84,5 +126,6 @@ async def get_current_user_info(
     return {
         "id": current_user.id,
         "username": current_user.username,
+        "role": getattr(current_user, 'role', 'user'),
         "created_at": current_user.created_at.isoformat() if current_user.created_at else None
     }

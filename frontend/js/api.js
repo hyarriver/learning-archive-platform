@@ -68,6 +68,23 @@ class API {
         return data;
     }
 
+    async register(username, password) {
+        const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ detail: '注册失败' }));
+            throw new Error(error.detail || '注册失败');
+        }
+
+        return response.json();
+    }
+
     async getCurrentUser() {
         return this.request('/api/auth/me');
     }
@@ -108,6 +125,38 @@ class API {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
+    }
+
+    async uploadFile(file, title = null) {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (title) {
+            formData.append('title', title);
+        }
+
+        const headers = {};
+        if (this.token) {
+            headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/files/upload`, {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ detail: '上传失败' }));
+            throw new Error(error.detail || '上传失败');
+        }
+
+        return response.json();
+    }
+
+    async deleteFile(fileId) {
+        return this.request(`/api/files/${fileId}`, {
+            method: 'DELETE',
+        });
     }
 
     async getCollectionSources() {

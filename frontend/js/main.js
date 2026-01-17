@@ -2,32 +2,39 @@
 function showPage(pageName) {
     // 隐藏所有内容页
     document.querySelectorAll('.content-page').forEach(page => {
-        page.classList.remove('active');
+        page.classList.add('hidden');
     });
     
     // 显示指定页
     const targetPage = document.getElementById(`${pageName}-page`);
     if (targetPage) {
-        targetPage.classList.add('active');
+        targetPage.classList.remove('hidden');
     }
     
     // 更新导航状态
     document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
+        item.classList.remove('bg-accent', 'text-accent-foreground');
     });
     
     const navItem = document.querySelector(`[data-page="${pageName}"]`);
     if (navItem) {
-        navItem.classList.add('active');
+        navItem.classList.add('bg-accent', 'text-accent-foreground');
     }
     
     // 加载对应页面数据
     if (pageName === 'files') {
-        loadFiles();
+        if (typeof loadFiles === 'function') {
+            loadFiles();
+        }
     } else if (pageName === 'collection') {
-        loadCollectionSources();
+        if (typeof loadCollectionSources === 'function') {
+            loadCollectionSources();
+        }
     }
 }
+
+// 导出函数供全局使用
+window.showPage = showPage;
 
 document.addEventListener('DOMContentLoaded', () => {
     // 导航切换
@@ -54,6 +61,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirm('确定要触发所有采集源吗？')) {
                 triggerCollection();
             }
+        });
+    }
+    
+    // 添加采集源按钮
+    const addSourceBtn = document.getElementById('add-source-btn');
+    if (addSourceBtn) {
+        addSourceBtn.addEventListener('click', () => {
+            showAddSourceModal();
+        });
+    }
+    
+    // 关闭添加采集源对话框
+    const closeAddSourceModal = document.getElementById('close-add-source-modal');
+    const closeAddSourceModal2 = document.getElementById('close-add-source-modal-2');
+    if (closeAddSourceModal) {
+        closeAddSourceModal.addEventListener('click', () => {
+            hideAddSourceModal();
+        });
+    }
+    if (closeAddSourceModal2) {
+        closeAddSourceModal2.addEventListener('click', () => {
+            hideAddSourceModal();
         });
     }
 });

@@ -29,6 +29,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
+    role = Column(String, default="user", nullable=False)  # 'admin' 或 'user'
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
 
@@ -58,6 +59,7 @@ class File(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     source_id = Column(Integer, ForeignKey("collection_sources.id"), nullable=True)
+    upload_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 上传用户ID
     file_path = Column(Text, nullable=False)  # 相对路径
     file_hash = Column(String, index=True, nullable=True)  # 文件哈希
     tags = Column(Text, nullable=True)  # JSON数组
@@ -67,6 +69,7 @@ class File(Base):
     
     # 关系
     source = relationship("CollectionSource", back_populates="files")
+    upload_user = relationship("User", foreign_keys=[upload_user_id])  # 上传用户关系
     versions = relationship("FileVersion", back_populates="file")
     logs = relationship("CollectionLog", back_populates="file")
 
