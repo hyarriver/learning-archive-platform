@@ -1,5 +1,5 @@
 """
-视频字幕爬虫
+视频字幕爬虫（使用 subprocess 调用 yt-dlp 避免事件循环冲突）
 """
 import json
 import subprocess
@@ -42,7 +42,7 @@ class VideoCrawler(BaseCrawler):
     
     def parse(self, content: str = None, url: str = None) -> Dict[str, Any]:
         """
-        使用 yt-dlp 提取视频信息和字幕
+        使用 yt-dlp 提取视频信息和字幕（使用 subprocess 避免事件循环冲突）
         
         Args:
             content: 不使用
@@ -55,54 +55,128 @@ class VideoCrawler(BaseCrawler):
             raise ValueError("视频URL不能为空")
         
         try:
-            # 使用 yt-dlp 提取信息
-            ydl_opts = {
-                'quiet': True,
-                'no_warnings': True,
-                'extract_flat': False,
-                'skip_download': True,
-                'writesubtitles': True,
-                'writeautomaticsub': self.write_auto_sub,
-                'subtitleslangs': self.subtitle_langs,
-                'subtitlesformat': 'vtt',  # 使用 VTT 格式
-            }
-            
-            import yt_dlp
-            
+            # 使用 subprocess 调用 yt-dlp 命令行工具，完全避免事件循环问题
             with tempfile.TemporaryDirectory() as tmpdir:
-                ydl_opts['outtmpl'] = str(Path(tmpdir) / '%(title)s.%(ext)s')
+                import json
                 
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    # 提取信息
-                    info = ydl.extract_info(url, download=False)
+                # 构建 yt-dlp 命令参数
+                output_template = str(Path(tmpdir) / '%(title)s.%(ext)s')
+                
+                # 首先提取视频信息（JSON格式）
+                info_cmd = [
+                    'yt-dlp',
+                    '--quiet',
+                    '--no-warnings',
+                    '--skip-download',
+                    '--dump-json',
+                    '--write-sub',
+                    '--write-auto-sub' if self.write_auto_sub else '--no-write-auto-sub',
+                    '--sub-langs', ','.join(self.subtitle_langs),
+                    '--sub-format', 'vtt',
+                    '--output', output_template,
+                    url
+                ]
+                
+                try:
+                    # 执行命令获取视频信息
+                    result = subprocess.run(
+                        info_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=120,  # 2分钟超时
+                        check=True
+                    )
                     
-                    # 提取字幕
-                    subtitles = self._extract_subtitles(info, tmpdir, ydl)
+                    # 解析 JSON 输出
+                    info = json.loads(result.stdout)
+                    
+                    # 查找字幕文件
+                    subtitle_text = self._find_subtitle_files(tmpdir, info.get('title', 'video'))
                     
                     # 构建结果
-                    result = {
+                    parse_result = {
                         'title': info.get('title', '无标题视频'),
-                        'content': subtitles,
+                        'content': subtitle_text,
                         'content_type': 'subtitle',
                         'metadata': {
                             'duration': info.get('duration'),
                             'uploader': info.get('uploader'),
                             'upload_date': info.get('upload_date'),
                             'view_count': info.get('view_count'),
-                            'description': info.get('description', '')[:500],  # 限制长度
+                            'description': info.get('description', '')[:500],
                             'thumbnail': info.get('thumbnail'),
                         }
                     }
                     
-                    logger.info(f"成功提取视频信息: {url}, 标题: {result['title']}")
-                    return result
+                    logger.info(f"成功提取视频信息: {url}, 标题: {parse_result['title']}")
+                    return parse_result
+                    
+                except subprocess.CalledProcessError as e:
+                    error_msg = f"yt-dlp 命令执行失败: {e.stderr if e.stderr else e.stdout}"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
+                except json.JSONDecodeError as e:
+                    error_msg = f"解析 yt-dlp 输出失败: {str(e)}"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
+                except subprocess.TimeoutExpired:
+                    error_msg = f"yt-dlp 执行超时: {url}"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
                     
         except Exception as e:
             error_msg = f"提取视频信息失败: {url}, 错误: {str(e)}"
             logger.error(error_msg)
             raise Exception(error_msg)
     
-    def _extract_subtitles(self, info: Dict, tmpdir: str, ydl) -> str:
+    def _find_subtitle_files(self, tmpdir: str, video_title: str) -> str:
+        """
+        查找并读取字幕文件（subprocess 方式）
+        
+        Args:
+            tmpdir: 临时目录
+            video_title: 视频标题
+            
+        Returns:
+            字幕文本内容
+        """
+        subtitle_texts = []
+        tmp_path = Path(tmpdir)
+        
+        # 查找所有 .vtt 文件
+        vtt_files = list(tmp_path.glob("*.vtt"))
+        
+        # 按语言优先级排序
+        for lang in self.subtitle_langs:
+            for vtt_file in vtt_files:
+                if lang in vtt_file.name or lang.replace('-', '') in vtt_file.name:
+                    try:
+                        content = vtt_file.read_text(encoding='utf-8')
+                        subtitle_text = self._vtt_to_text(content)
+                        subtitle_texts.append(subtitle_text)
+                        break  # 找到第一个匹配的语言就退出
+                    except Exception as e:
+                        logger.warning(f"读取字幕文件失败: {vtt_file}, 错误: {e}")
+                        continue
+        
+        # 如果没找到指定语言，使用第一个找到的文件
+        if not subtitle_texts and vtt_files:
+            try:
+                content = vtt_files[0].read_text(encoding='utf-8')
+                subtitle_text = self._vtt_to_text(content)
+                subtitle_texts.append(subtitle_text)
+            except Exception as e:
+                logger.warning(f"读取字幕文件失败: {vtt_files[0]}, 错误: {e}")
+        
+        # 合并所有字幕文本
+        merged_text = "\n\n".join(subtitle_texts)
+        
+        if not merged_text.strip():
+            return "无可用字幕内容"
+        
+        return merged_text
+    
+    def _extract_subtitles_old(self, info: Dict, tmpdir: str, ydl) -> str:
         """
         提取并合并字幕
         

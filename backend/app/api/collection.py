@@ -3,7 +3,7 @@
 """
 import json
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -254,6 +254,7 @@ async def delete_source(
 @router.post("/sources/{source_id}/trigger")
 async def trigger_collection(
     source_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
@@ -262,6 +263,7 @@ async def trigger_collection(
     
     Args:
         source_id: 采集源ID
+        background_tasks: 后台任务
         db: 数据库会话
         current_user: 当前登录用户
         
@@ -280,13 +282,31 @@ async def trigger_collection(
     if not scheduler:
         raise HTTPException(status_code=500, detail="任务调度器未启动")
     
-    try:
-        scheduler.trigger_collection(source_id=source_id)
-        logger.info(f"手动触发采集: {source.name}")
-        return {"message": "采集任务已触发"}
-    except Exception as e:
-        logger.error(f"触发采集失败: {source.name}, 错误: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"触发采集失败: {str(e)}")
+    # 在后台任务中执行采集，避免阻塞请求
+    # 注意：需要创建新的数据库会话，因为后台任务会在请求结束后执行
+    async def _run_collection():
+        db_gen = get_db()
+        db_session = next(db_gen)
+        try:
+            await scheduler.collect_source(db_session, source)
+            logger.info(f"手动触发采集完成: {source.name}")
+        except Exception as e:
+            error_type = type(e).__name__
+            try:
+                if hasattr(e, 'args') and e.args and isinstance(e.args[0], str):
+                    error_detail = e.args[0][:200]
+                else:
+                    error_detail = f"{error_type}: 采集失败"
+            except Exception:
+                error_detail = f"{error_type}: 采集失败"
+            logger.error(f"触发采集失败: {source.name}, 错误类型: {error_type}, 错误信息: {error_detail}")
+        finally:
+            db_session.close()
+    
+    # 添加到后台任务
+    background_tasks.add_task(_run_collection)
+    
+    return {"message": "采集任务已提交，正在后台执行"}
 
 
 @router.post("/trigger")
@@ -311,13 +331,25 @@ async def trigger_all_collection(
     if not scheduler:
         raise HTTPException(status_code=500, detail="任务调度器未启动")
     
+    # 直接执行采集（异步，不会阻塞太久）
     try:
-        scheduler.trigger_collection(source_id=None)
-        logger.info("手动触发所有采集源")
-        return {"message": "所有采集任务已触发"}
+        await scheduler.collect_all_sources()
+        logger.info("手动触发所有采集源完成")
+        return {"message": "所有采集任务已完成"}
     except Exception as e:
-        logger.error(f"触发所有采集失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"触发采集失败: {str(e)}")
+        # 安全地获取错误信息，避免格式化异常对象时触发异步操作
+        error_type = type(e).__name__
+        try:
+            if hasattr(e, 'args') and e.args and isinstance(e.args[0], str):
+                error_detail = e.args[0][:200]
+            else:
+                error_detail = f"{error_type}: 采集失败"
+        except Exception:
+            error_detail = f"{error_type}: 采集失败"
+        
+        # 使用 logger.error 而不是 logger.exception
+        logger.error(f"触发所有采集失败: 错误类型: {error_type}, 错误信息: {error_detail}")
+        raise HTTPException(status_code=500, detail=f"触发采集失败: {error_detail}")
 
 
 @router.get("/logs")

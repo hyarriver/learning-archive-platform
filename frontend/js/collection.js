@@ -71,22 +71,24 @@ function displaySources(sources) {
 async function triggerCollection(sourceId = null) {
     try {
         await api.triggerCollection(sourceId);
-        alert('采集任务已触发');
+        showToast('采集任务已触发', 'success', 3000);
     } catch (error) {
-        alert(`触发失败: ${error.message}`);
+        showToast(`触发失败: ${error.message}`, 'error', 3000);
     }
 }
 
 async function deleteSource(sourceId) {
-    if (!confirm('确定要删除这个采集源吗？删除后无法恢复。')) {
+    const confirmed = await showConfirm('确定要删除这个采集源吗？删除后无法恢复。', '删除采集源', '删除', '取消');
+    if (!confirmed) {
         return;
     }
     
     try {
         await api.deleteCollectionSource(sourceId);
+        showToast('采集源删除成功', 'success', 2000);
         loadCollectionSources();
     } catch (error) {
-        alert(`删除失败: ${error.message}`);
+        showToast(`删除失败: ${error.message}`, 'error', 3000);
     }
 }
 
@@ -114,7 +116,7 @@ async function createSource() {
     const sourceType = document.getElementById('source-type-select').value;
     
     if (!name || !url) {
-        alert('请填写名称和URL');
+        showToast('请填写名称和URL', 'warning', 3000);
         return;
     }
     
@@ -130,11 +132,11 @@ async function createSource() {
             source_type: sourceType,
             enabled: true
         });
-        alert('采集源创建成功！');
+        showToast('采集源创建成功！', 'success', 3000);
         hideAddSourceModal();
         loadCollectionSources();
     } catch (error) {
-        alert(`创建失败: ${error.message}`);
+        showToast(`创建失败: ${error.message}`, 'error', 3000);
     } finally {
         createBtn.disabled = false;
         createBtn.textContent = originalText;

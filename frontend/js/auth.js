@@ -78,8 +78,15 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(() => {
                 api.setToken(null);
+                // 显示登录页，不reload
+                showLoginPage();
             });
     }
+    
+    // 监听认证失败事件
+    window.addEventListener('auth-required', () => {
+        showLoginPage();
+    });
 });
 
 function showMainPage() {
@@ -114,14 +121,23 @@ function loadUserInfo() {
         })
         .catch(() => {
             api.setToken(null);
-            window.location.reload();
+            // 显示登录页，避免reload导致循环刷新
+            showLoginPage();
         });
+}
+
+function showLoginPage() {
+    document.getElementById('auth-page').classList.remove('hidden');
+    document.getElementById('main-page').classList.add('hidden');
+    // 重置表单
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    document.getElementById('login-error').classList.add('hidden');
 }
 
 function logout() {
     api.setToken(null);
-    document.getElementById('auth-page').classList.remove('hidden');
-    document.getElementById('main-page').classList.add('hidden');
+    showLoginPage();
 }
 
 // 导出函数

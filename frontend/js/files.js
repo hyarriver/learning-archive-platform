@@ -98,7 +98,7 @@ function createFileCard(file) {
                 </div>
                 <div class="flex gap-2 items-start">
                     <button 
-                        onclick="event.stopPropagation(); api.downloadFile(${file.id})"
+                        onclick="event.stopPropagation(); downloadFileHandler(${file.id})"
                         class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-3"
                     >
                         下载
@@ -164,8 +164,12 @@ async function showFileDetail(fileId) {
         fileContent.innerHTML = `<pre class="whitespace-pre-wrap bg-card border border-border rounded-lg p-4 overflow-x-auto">${escapeHtml(file.content)}</pre>`;
         
         // 设置下载按钮
-        document.getElementById('download-btn').onclick = () => {
-            api.downloadFile(fileId);
+        document.getElementById('download-btn').onclick = async () => {
+            try {
+                await api.downloadFile(fileId);
+            } catch (error) {
+                // 错误已在 downloadFile 方法中处理并显示 Toast
+            }
         };
     } catch (error) {
         fileContent.innerHTML = `<div class="text-center py-8 text-destructive">${error.message}</div>`;
@@ -173,7 +177,8 @@ async function showFileDetail(fileId) {
 }
 
 async function deleteFile(fileId) {
-    if (!confirm('确定要删除这个文件吗？')) {
+    const confirmed = await showConfirm('确定要删除这个文件吗？删除后无法恢复。', '删除文件', '删除', '取消');
+    if (!confirmed) {
         return;
     }
 
@@ -181,8 +186,9 @@ async function deleteFile(fileId) {
         await api.deleteFile(fileId);
         // 重新加载文件列表
         loadFiles(currentPage, currentFilters);
+        showToast('文件删除成功', 'success', 2000);
     } catch (error) {
-        alert(`删除失败: ${error.message}`);
+        showToast(`删除失败: ${error.message}`, 'error', 3000);
     }
 }
 
@@ -191,7 +197,7 @@ async function uploadFile() {
     const titleInput = document.getElementById('upload-title-input');
     
     if (!fileInput.files || fileInput.files.length === 0) {
-        alert('请选择要上传的文件');
+        showToast('请选择要上传的文件', 'warning', 3000);
         return;
     }
 
@@ -200,7 +206,8 @@ async function uploadFile() {
 
     // 检查文件类型（只允许文本文件）
     if (!file.type.startsWith('text/') && !file.name.endsWith('.md') && !file.name.endsWith('.txt')) {
-        if (!confirm('文件可能不是文本文件，是否继续上传？')) {
+        const confirmed = await showConfirm('文件可能不是文本文件，是否继续上传？', '确认上传', '继续上传', '取消');
+        if (!confirmed) {
             return;
         }
     }
@@ -212,7 +219,7 @@ async function uploadFile() {
 
     try {
         await api.uploadFile(file, title);
-        alert('文件上传成功！');
+        showToast('文件上传成功！', 'success', 3000);
         // 清空表单
         fileInput.value = '';
         titleInput.value = '';
@@ -221,7 +228,7 @@ async function uploadFile() {
         // 重新加载文件列表
         loadFiles(1, currentFilters);
     } catch (error) {
-        alert(`上传失败: ${error.message}`);
+        showToast(`上传失败: ${error.message}`, 'error', 3000);
     } finally {
         uploadBtn.disabled = false;
         uploadBtn.textContent = originalText;
@@ -249,12 +256,17 @@ function formatDate(dateString) {
 
 // 搜索功能和上传功能
 document.addEventListener('DOMContentLoaded', () => {
-    // 更新当前用户角色
-    api.getCurrentUser().then(user => {
-        currentUserRole = user.role || 'user';
-    }).catch(() => {
+    // 更新当前用户角色（只在已登录状态下获取）
+    if (api.token) {
+        api.getCurrentUser().then(user => {
+            currentUserRole = user.role || 'user';
+        }).catch(() => {
+            // 如果获取失败，不抛出错误，只设置默认角色
+            currentUserRole = 'user';
+        });
+    } else {
         currentUserRole = 'user';
-    });
+    }
 
     // 搜索功能
     const searchInput = document.getElementById('search-input');
@@ -314,7 +326,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// 下载文件处理函数
+async function downloadFileHandler(fileId) {
+    try {
+        await api.downloadFile(fileId);
+    } catch (error) {
+        // 错误已在 downloadFile 方法中处理并显示 Toast
+    }
+}
+
 // 导出函数
 window.loadFiles = loadFiles;
 window.showFileDetail = showFileDetail;
 window.deleteFile = deleteFile;
+window.downloadFileHandler = downloadFileHandler;

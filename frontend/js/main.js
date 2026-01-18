@@ -30,6 +30,10 @@ function showPage(pageName) {
         if (typeof loadCollectionSources === 'function') {
             loadCollectionSources();
         }
+    } else if (pageName === 'users') {
+        if (typeof loadUsers === 'function') {
+            loadUsers();
+        }
     }
 }
 
@@ -57,8 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 触发全部采集按钮
     const triggerAllBtn = document.getElementById('trigger-all-btn');
     if (triggerAllBtn) {
-        triggerAllBtn.addEventListener('click', () => {
-            if (confirm('确定要触发所有采集源吗？')) {
+        triggerAllBtn.addEventListener('click', async () => {
+            const confirmed = await showConfirm('确定要触发所有采集源吗？', '触发全部采集', '确定', '取消');
+            if (confirmed) {
                 triggerCollection();
             }
         });

@@ -34,10 +34,11 @@ class API {
         });
 
         if (response.status === 401) {
-            // Token 过期，跳转到登录页
+            // Token 过期，清除token并显示登录页（避免立即reload导致循环刷新）
             this.setToken(null);
-            window.location.reload();
-            return;
+            // 触发自定义事件，让页面切换到登录状态，而不是立即reload
+            window.dispatchEvent(new CustomEvent('auth-required'));
+            throw new Error('认证失败，请重新登录');
         }
 
         if (!response.ok) {
@@ -108,23 +109,57 @@ class API {
             headers['Authorization'] = `Bearer ${this.token}`;
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/files/${fileId}/download`, {
-            headers,
-        });
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/files/${fileId}/download`, {
+                headers,
+            });
 
-        if (!response.ok) {
-            throw new Error('下载失败');
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ detail: '下载失败' }));
+                throw new Error(error.detail || '下载失败');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            // 解析文件名
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'file.md';
+            
+            if (contentDisposition) {
+                // 支持两种格式：filename="xxx.md" 或 filename*=UTF-8''xxx.md
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                    // 处理 URL 编码的文件名
+                    if (filename.includes("''")) {
+                        const parts = filename.split("''");
+                        if (parts.length > 1) {
+                            filename = decodeURIComponent(parts[parts.length - 1]);
+                        }
+                    }
+                }
+            }
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            // 显示成功提示
+            if (typeof showToast === 'function') {
+                showToast('文件下载成功', 'success', 2000);
+            }
+        } catch (error) {
+            // 显示错误提示
+            if (typeof showToast === 'function') {
+                showToast(error.message || '下载失败', 'error', 3000);
+            }
+            throw error;
         }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = response.headers.get('Content-Disposition')?.split('filename=')[1] || 'file.md';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
     }
 
     async uploadFile(file, title = null) {
@@ -198,6 +233,35 @@ class API {
     async getCollectionLogs(filters = {}) {
         const params = new URLSearchParams(filters);
         return this.request(`/api/collection/logs?${params}`);
+    }
+
+    // 用户管理API
+    async getUsers() {
+        return this.request('/api/users');
+    }
+
+    async getUser(userId) {
+        return this.request(`/api/users/${userId}`);
+    }
+
+    async createUser(userData) {
+        return this.request('/api/users', {
+            method: 'POST',
+            body: JSON.stringify(userData),
+        });
+    }
+
+    async updateUser(userId, userData) {
+        return this.request(`/api/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(userData),
+        });
+    }
+
+    async deleteUser(userId) {
+        return this.request(`/api/users/${userId}`, {
+            method: 'DELETE',
+        });
     }
 }
 

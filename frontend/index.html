@@ -301,8 +301,12 @@
                         </div>
 
                         <div id="users-page" class="content-page hidden">
-                            <h2 class="text-2xl font-semibold mb-4">用户管理</h2>
-                            <div class="text-center py-8 text-muted-foreground">用户管理功能开发中...</div>
+                            <div class="mb-4 flex items-center justify-between">
+                                <h2 class="text-2xl font-semibold">用户管理</h2>
+                            </div>
+                            <div id="users-list" class="space-y-2">
+                                <div class="text-center py-8 text-muted-foreground">加载中...</div>
+                            </div>
                         </div>
                     </main>
                 </div>
@@ -449,10 +453,12 @@
         </div>
     </div>
 
+    <script src="/js/notifications.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/files.js"></script>
     <script src="/js/collection.js"></script>
+    <script src="/js/users.js"></script>
     <script src="/js/main.js"></script>
 </body>
 </html>
