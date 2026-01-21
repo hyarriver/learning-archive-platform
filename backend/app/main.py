@@ -9,10 +9,11 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.database import Base, engine
+from app.database import Base, engine, get_db
 from app.api import auth, files, collection, users
 from app.scheduler import setup_scheduler
 from app.utils.logger import setup_logger
+from app.utils.search import create_fts_table
 
 logger = setup_logger(__name__)
 
@@ -28,6 +29,15 @@ async def lifespan(app: FastAPI):
     # 创建数据库表
     Base.metadata.create_all(bind=engine)
     logger.info("数据库表已创建/更新")
+    
+    # 创建全文搜索表
+    try:
+        db = next(get_db())
+        create_fts_table(db)
+        db.close()
+        logger.info("全文搜索表已创建/更新")
+    except Exception as e:
+        logger.warning(f"创建全文搜索表失败: {e}")
     
     # 启动任务调度器
     scheduler = setup_scheduler()
@@ -72,6 +82,11 @@ if frontend_path.exists():
     css_path = frontend_path / "css"
     if css_path.exists():
         app.mount("/static", StaticFiles(directory=str(css_path)), name="static")
+    
+    # 挂载组件文件
+    components_path = frontend_path / "components"
+    if components_path.exists():
+        app.mount("/components", StaticFiles(directory=str(components_path)), name="components")
     
     # 挂载 JS 文件
     js_path = frontend_path / "js"

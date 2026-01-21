@@ -14,12 +14,15 @@
 
 ## 技术栈
 
-- **后端**: Python + FastAPI
-- **数据库**: SQLite
-- **爬虫**: requests + BeautifulSoup / yt-dlp
-- **转换**: pandoc / html2text
+- **后端**: Python + FastAPI（异步Web框架）
+- **数据库**: SQLite + SQLAlchemy ORM + FTS5全文搜索
+- **爬虫**: requests + BeautifulSoup + Selenium / yt-dlp
+- **转换**: html2text / markdown
 - **任务调度**: APScheduler
-- **前端**: 响应式Web（HTML/CSS/JS 或 React/Vue）
+- **前端**: 原生JavaScript + Tailwind CSS（响应式设计）
+- **测试**: pytest + pytest-asyncio
+- **CI/CD**: GitHub Actions
+- **容器化**: Docker + Docker Compose
 
 ## 项目结构
 
@@ -49,6 +52,22 @@ Learning Archive Platform/
 
 ### 安装步骤
 
+#### 方式1: Docker部署（推荐）
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/hyarriver/learning-archive-platform.git
+cd "Learning Archive Platform"
+
+# 2. 使用Docker Compose启动
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+```
+
+#### 方式2: 本地部署
+
 ```bash
 # 1. 克隆项目
 git clone https://github.com/hyarriver/learning-archive-platform.git
@@ -71,6 +90,22 @@ cp .env.example .env
 
 # 6. 启动服务
 uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### 运行测试
+
+```bash
+# 进入backend目录
+cd backend
+
+# 运行所有测试
+pytest tests/ -v
+
+# 运行测试并生成覆盖率报告
+pytest tests/ -v --cov=app --cov-report=html
+
+# 查看覆盖率报告
+# 打开 htmlcov/index.html
 ```
 
 ### 访问应用
@@ -99,17 +134,26 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 }
 ```
 
-## 开发计划
+## 核心功能
 
-详见 [docs/02-开发计划.md](./docs/02-开发计划.md)
+- ✅ **自动化采集**: 定时采集网页和视频内容
+- ✅ **Markdown转换**: 自动转换为标准Markdown格式
+- ✅ **全文搜索**: SQLite FTS5全文搜索，支持标题、内容、标签搜索
+- ✅ **版本管理**: 自动检测内容变化，支持版本历史查看
+- ✅ **权限控制**: JWT认证 + RBAC角色权限管理
+- ✅ **文件管理**: 文件上传、下载、批量操作
+- ✅ **响应式设计**: 支持PC和移动端访问
+- ✅ **暗色模式**: 支持明暗主题切换
 
-### MVP 阶段（16-25天）
-- [x] 项目结构搭建
-- [ ] 爬虫模块
-- [ ] Markdown转换
-- [ ] 文件存储与版本管理
-- [ ] 用户认证
-- [ ] 基础前端
+## 项目亮点
+
+- 🚀 **工程化**: 完整的测试覆盖、CI/CD流程、Docker容器化
+- 🔍 **全文搜索**: SQLite FTS5实现高性能全文搜索
+- 🔒 **安全性**: JWT认证、密码加密、权限控制
+- 📊 **性能优化**: 异步处理、数据库索引、连接池
+- 📝 **代码质量**: 类型提示、文档字符串、代码规范检查
+
+详细说明请查看 [项目亮点与优化文档](./docs/项目亮点与优化.md)
 
 ## 重要说明
 

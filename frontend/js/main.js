@@ -13,12 +13,12 @@ function showPage(pageName) {
     
     // 更新导航状态
     document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('bg-accent', 'text-accent-foreground');
+        item.classList.remove('bg-primary', 'text-primary-foreground', 'shadow-md');
     });
     
     const navItem = document.querySelector(`[data-page="${pageName}"]`);
     if (navItem) {
-        navItem.classList.add('bg-accent', 'text-accent-foreground');
+        navItem.classList.add('bg-primary', 'text-primary-foreground', 'shadow-md');
     }
     
     // 加载对应页面数据
@@ -40,7 +40,70 @@ function showPage(pageName) {
 // 导出函数供全局使用
 window.showPage = showPage;
 
+// 暗夜模式切换功能
+function initTheme() {
+    // 读取本地存储的主题设置，默认跟随系统
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    applyTheme(isDark);
+    updateThemeIcon(isDark);
+}
+
+function applyTheme(isDark) {
+    const html = document.documentElement;
+    if (isDark) {
+        html.classList.add('dark');
+    } else {
+        html.classList.remove('dark');
+    }
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
+function updateThemeIcon(isDark) {
+    const sunIcon = document.getElementById('theme-icon-sun');
+    const moonIcon = document.getElementById('theme-icon-moon');
+    
+    if (sunIcon && moonIcon) {
+        if (isDark) {
+            sunIcon.classList.add('hidden');
+            moonIcon.classList.remove('hidden');
+        } else {
+            sunIcon.classList.remove('hidden');
+            moonIcon.classList.add('hidden');
+        }
+    }
+}
+
+function toggleTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    applyTheme(!isDark);
+    updateThemeIcon(!isDark);
+}
+
+// 监听系统主题变化
+if (window.matchMedia) {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', (e) => {
+        // 如果用户没有手动设置主题，则跟随系统
+        if (!localStorage.getItem('theme')) {
+            applyTheme(e.matches);
+            updateThemeIcon(e.matches);
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // 初始化主题
+    initTheme();
+    
+    // 主题切换按钮
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
+    }
+    
     // 导航切换
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {

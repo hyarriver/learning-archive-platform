@@ -90,14 +90,42 @@ class VideoCrawler(BaseCrawler):
                     # 解析 JSON 输出
                     info = json.loads(result.stdout)
                     
-                    # 查找字幕文件
-                    subtitle_text = self._find_subtitle_files(tmpdir, info.get('title', 'video'))
+                    # 获取视频 URL（优先使用 webpage_url，否则使用 url）
+                    video_url = info.get('webpage_url') or info.get('url') or url
+                    
+                    # 构建视频信息 Markdown 内容（包含下载链接）
+                    duration_str = self._format_duration(info.get('duration'))
+                    upload_date_str = info.get('upload_date', '')
+                    if upload_date_str and len(upload_date_str) == 8:
+                        # 格式化日期：YYYYMMDD -> YYYY-MM-DD
+                        upload_date_str = f"{upload_date_str[:4]}-{upload_date_str[4:6]}-{upload_date_str[6:8]}"
+                    
+                    video_info_content = f"""# {info.get('title', '无标题视频')}
+
+## 视频信息
+
+- **标题**: {info.get('title', '无标题视频')}
+- **上传者**: {info.get('uploader', '未知')}
+- **上传日期**: {upload_date_str or '未知'}
+- **时长**: {duration_str or '未知'}
+- **观看次数**: {info.get('view_count', 0):,} {'' if info.get('view_count') else '未知'}
+- **视频链接**: [点击打开视频]({video_url})
+
+## 视频描述
+
+{info.get('description', '无描述')[:1000]}
+
+---
+
+**注意**: 此文件为视频链接，不支持在线预览。请使用下载功能或直接访问上述视频链接。
+"""
                     
                     # 构建结果
                     parse_result = {
                         'title': info.get('title', '无标题视频'),
-                        'content': subtitle_text,
-                        'content_type': 'subtitle',
+                        'content': video_info_content,
+                        'content_type': 'video',
+                        'video_url': video_url,
                         'metadata': {
                             'duration': info.get('duration'),
                             'uploader': info.get('uploader'),
@@ -105,6 +133,7 @@ class VideoCrawler(BaseCrawler):
                             'view_count': info.get('view_count'),
                             'description': info.get('description', '')[:500],
                             'thumbnail': info.get('thumbnail'),
+                            'webpage_url': info.get('webpage_url'),
                         }
                     }
                     
@@ -312,3 +341,25 @@ class VideoCrawler(BaseCrawler):
         except Exception as e:
             logger.error(f"视频爬虫错误: {url}, {str(e)}")
             return None
+    
+    def _format_duration(self, seconds: Optional[int]) -> Optional[str]:
+        """
+        格式化视频时长（秒 -> HH:MM:SS 或 MM:SS）
+        
+        Args:
+            seconds: 秒数
+            
+        Returns:
+            格式化的时长字符串
+        """
+        if not seconds:
+            return None
+        
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        secs = seconds % 60
+        
+        if hours > 0:
+            return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+        else:
+            return f"{minutes:02d}:{secs:02d}"

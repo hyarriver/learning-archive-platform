@@ -16,14 +16,12 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# 虚拟环境
+# Virtual Environment
 venv/
 env/
 ENV/
@@ -37,65 +35,38 @@ ENV/
 *~
 .DS_Store
 
-# 环境变量和配置
-.env
-.env.local
-.env.*.local
-*.env
-
-# 数据库
-*.db
-*.sqlite
-*.sqlite3
+# 数据文件
 data/
+*.db
 *.db-journal
+*.db-shm
+*.db-wal
 
 # 日志
 logs/
 *.log
 
-# 临时文件
-tmp/
-temp/
+# 测试
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# 环境变量
+.env
+.env.local
+
+# 备份文件
+backup/
+*.bak
 *.tmp
 
 # 上传文件
 uploads/
 collections/
 
-# 部署脚本（保留，但可以排除服务器特定配置）
-# 保留所有 .sh 文件
-
-# 敏感信息
-secrets/
-*.key
-*.pem
-*.p12
-*.crt
-
-# 备份文件
-*.bak
-*.backup
-*~
-
-# 系统文件
-Thumbs.db
-.DS_Store
-
-# 测试覆盖
-.coverage
-htmlcov/
-.pytest_cache/
-.tox/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# 项目特定
-backend/data/
-backend/logs/
-frontend/dist/
-frontend/build/
+# 其他
+*.pyc
+*.pyo
+*.pyd

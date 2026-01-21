@@ -18,6 +18,7 @@ aiohttp==3.9.1  # 异步HTTP（可选）
 beautifulsoup4==4.12.2
 lxml==4.9.3
 html2text==2020.1.16
+selenium==4.15.2  # 支持JavaScript渲染的网页爬取
 
 # 视频字幕
 yt-dlp==2023.11.16
@@ -39,3 +40,8 @@ pydantic-settings==2.1.0  # 配置管理
 
 # 日志（使用标准logging，不需要loguru）
 # loguru==0.7.2
+
+# 测试
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2  # FastAPI TestClient依赖

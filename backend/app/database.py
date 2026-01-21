@@ -40,9 +40,10 @@ class CollectionSource(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)  # 来源名称
-    url_pattern = Column(Text, nullable=False)  # URL模式
+    url_pattern = Column(Text, nullable=False)  # URL模式或搜索URL
     source_type = Column(String, nullable=False)  # 'webpage' / 'video'
     crawler_config = Column(Text, nullable=True)  # JSON配置
+    search_params = Column(Text, nullable=True)  # 搜索参数 JSON格式，如 {"keyword": "Python", "page": "1"}
     enabled = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, onupdate=datetime.utcnow)

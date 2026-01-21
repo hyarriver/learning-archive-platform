@@ -194,6 +194,13 @@ class API {
         });
     }
 
+    async bulkDeleteFiles(fileIds) {
+        return this.request('/api/files/bulk-delete', {
+            method: 'POST',
+            body: JSON.stringify({ file_ids: fileIds }),
+        });
+    }
+
     async getCollectionSources() {
         return this.request('/api/collection/sources');
     }
@@ -228,6 +235,10 @@ class API {
                 method: 'POST',
             });
         }
+    }
+
+    async getCollectionProgress(sourceId) {
+        return this.request(`/api/collection/sources/${sourceId}/progress`);
     }
 
     async getCollectionLogs(filters = {}) {
